@@ -8,8 +8,8 @@ public class MyBot : IChessBot
 {
     public Move Think(Board board, Timer timer)
     {
-        Console.WriteLine("New eval: " + evaluateBoard(board));
-        return Minimax(board, 7, float.NegativeInfinity, float.PositiveInfinity, true).Item2;
+        //Console.WriteLine("New eval: " + evaluateBoard(board));
+        return Minimax(board, 5, float.NegativeInfinity, float.PositiveInfinity, false, new Move()).Item2;
     }
 
     public float evaluateBoard(Board board)
@@ -36,9 +36,8 @@ public class MyBot : IChessBot
         return eval;
     }
 
-    public (float, Move) Minimax(Board board, int depth, float alpha, float beta, bool isMaximizer)
+    public (float, Move) Minimax(Board board, int depth, float alpha, float beta, bool isMaximizer, Move bestMove)
     {
-        Move bestMove = new Move();
         if (depth == 0 || board.GetLegalMoves().Length == 0)
         {
             return (evaluateBoard(board), bestMove); // Return the evaluation and no move at leaf nodes
@@ -52,7 +51,7 @@ public class MyBot : IChessBot
             foreach (Move m in legalMoves)
             {
                 board.MakeMove(m);
-                (float value, _) = Minimax(board, depth - 1, alpha, beta, false);
+                (float value, _) = Minimax(board, depth - 1, alpha, beta, false, bestMove);
                 board.UndoMove(m); // Undo the move after evaluating
 
                 if (value > bestValue)
@@ -75,7 +74,7 @@ public class MyBot : IChessBot
             foreach (Move m in legalMoves)
             {
                 board.MakeMove(m);
-                (float value, _) = Minimax(board, depth - 1, alpha, beta, true);
+                (float value, _) = Minimax(board, depth - 1, alpha, beta, true, bestMove);
                 board.UndoMove(m); // Undo the move after evaluating
 
                 if (value < bestValue)
