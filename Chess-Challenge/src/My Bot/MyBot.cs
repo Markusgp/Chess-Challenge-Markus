@@ -10,9 +10,8 @@ public class MyBot : IChessBot
     {
         Console.WriteLine("New eval: " + evaluateBoard(board));
         bool isMaximizing = board.IsWhiteToMove ? true : false;
-        return Minimax(board, 5, isMaximizing, float.NegativeInfinity, float.PositiveInfinity).Item2;
+        return Minimax(board, 6, isMaximizing, float.NegativeInfinity, float.PositiveInfinity).Item2;
     }
-
     private readonly Dictionary<PieceType, int> pieceValues = new Dictionary<PieceType, int> {
         { PieceType.None, 0 },
         { PieceType.King, 900 },
@@ -37,53 +36,36 @@ public class MyBot : IChessBot
             }
         }
 
-        if (board.IsWhiteToMove)
+        if (board.IsInCheckmate())
         {
-            if (board.IsInCheckmate())
-            {
-                eval = float.NegativeInfinity;
-            }
-            if (board.IsDraw())
-            {
-                eval = float.NegativeInfinity;
-            }
+            eval = board.IsWhiteToMove ? float.NegativeInfinity : float.PositiveInfinity;
         }
-        else
+        else if (board.IsDraw())
         {
-            if (board.IsInCheckmate())
-            {
-                eval = float.PositiveInfinity;
-            }
-            if (board.IsDraw())
-            {
-                eval = float.PositiveInfinity;
-            }
+            eval = 0; // A draw should have an evaluation of 0
         }
 
         return eval;
     }
 
+
     public (float, Move) Minimax(Board board, int depth, bool isMaximizing, float alpha, float beta)
     {
+        if (depth == 0 || board.IsInCheckmate() || board.IsDraw())
+        {
+            return (evaluateBoard(board), new Move());
+        }
 
         Move[] moves = board.GetLegalMoves();
-        Move[] orderedMoves = moves
-            .OrderByDescending(m => m.IsCapture)
-            .ThenByDescending(m => pieceValues[m.CapturePieceType])
-            .ToArray();
-
-
-        if (depth == 0 || orderedMoves.Length == 0)
-        {
-            return (evaluateBoard(board), new Move()); // Best move is not relevant at the leaf node
-        }
+        Random rnd = new Random();
+        moves = moves.OrderBy(x => rnd.Next()).ToArray(); // Shuffle the moves to introduce randomness
 
         Move bestMove = new Move();
 
         if (isMaximizing)
         {
             float maxEval = float.NegativeInfinity;
-            foreach (Move m in orderedMoves)
+            foreach (Move m in moves)
             {
                 board.MakeMove(m);
                 (float eval, Move _) = Minimax(board, depth - 1, false, alpha, beta);
@@ -102,7 +84,7 @@ public class MyBot : IChessBot
         else
         {
             float minEval = float.PositiveInfinity;
-            foreach (Move m in orderedMoves)
+            foreach (Move m in moves)
             {
                 board.MakeMove(m);
                 (float eval, Move _) = Minimax(board, depth - 1, true, alpha, beta);
