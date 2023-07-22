@@ -13,32 +13,53 @@ public class MyBot : IChessBot
         return Minimax(board, 5, isMaximizing, float.NegativeInfinity, float.PositiveInfinity).Item2;
     }
 
-    public float evaluateBoard(Board board)
-    {
-        float eval = 0;
+  public float evaluateBoard(Board board)
+{
+    float eval = 0;
 
-        var pieceValues = new Dictionary<PieceType, int> {
-        { PieceType.None, 0 },
-        { PieceType.King, 900 },
-        { PieceType.Queen, 90 },
-        { PieceType.Rook, 50 },
-        { PieceType.Bishop, 30 },
-        { PieceType.Knight, 30 },
-        { PieceType.Pawn, 10 }
+    var pieceValues = new Dictionary<PieceType, int> {
+    { PieceType.None, 0 },
+    { PieceType.King, 900 },
+    { PieceType.Queen, 90 },
+    { PieceType.Rook, 50 },
+    { PieceType.Bishop, 30 },
+    { PieceType.Knight, 30 },
+    { PieceType.Pawn, 10 }
     };
 
-        foreach (var pList in board.GetAllPieceLists())
+    foreach (var pList in board.GetAllPieceLists())
+    {
+        foreach (Piece p in pList)
         {
-            foreach (Piece p in pList)
-            {
-                //Evaluation heuristic
-                float value = pieceValues[p.PieceType];
-                eval += p.IsWhite ? value : -value; //Value of pieces                
-            }
+            // Base value of piece
+            float value = pieceValues[p.PieceType];
+            eval += p.IsWhite ? value : -value;
         }
-
-        return eval;
     }
+
+    if (board.IsDraw())
+    {
+        eval = 0;
+    }
+
+    if (board.IsWhiteToMove)
+    {
+        if (board.IsInCheckmate())
+        {
+            eval -= 2000;
+        }
+    }
+    else
+    {
+        if (board.IsInCheckmate())
+        {
+            eval += 2000;
+        }
+    }
+
+    return eval;
+}
+
 
 
     public (float, Move) Minimax(Board board, int depth, bool isMaximizing, float alpha, float beta)
@@ -71,7 +92,7 @@ public class MyBot : IChessBot
         }
         else
         {
-            float minEval = float.PositiveInfinity; 
+            float minEval = float.PositiveInfinity;
             foreach (Move m in board.GetLegalMoves())
             {
                 board.MakeMove(m);
