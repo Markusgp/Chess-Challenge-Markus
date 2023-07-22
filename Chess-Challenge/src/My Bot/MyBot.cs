@@ -57,8 +57,7 @@ public class MyBot : IChessBot
         }
 
         Move[] moves = board.GetLegalMoves();
-        Random rnd = new Random();
-        moves = moves.OrderBy(x => rnd.Next()).ToArray(); // Shuffle the moves to introduce randomness
+        moves = moves.OrderByDescending(m => m.IsCapture).ThenBy(x => new Random().Next()).ToArray();
 
         Move bestMove = new Move();
 
@@ -101,6 +100,4 @@ public class MyBot : IChessBot
             return (minEval, bestMove);
         }
     }
-
-
 }
