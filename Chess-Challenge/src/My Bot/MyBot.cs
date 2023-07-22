@@ -9,7 +9,8 @@ public class MyBot : IChessBot
     public Move Think(Board board, Timer timer)
     {
         Console.WriteLine("New eval: " + evaluateBoard(board));
-        return Minimax(board, 5, float.NegativeInfinity, float.PositiveInfinity, new Move()).Item2;
+        bool isMaximizing = board.IsWhiteToMove ? true : false;
+        return Minimax(board, 5, isMaximizing, float.NegativeInfinity, float.PositiveInfinity).Item2;
     }
 
     public float evaluateBoard(Board board)
@@ -17,14 +18,14 @@ public class MyBot : IChessBot
         float eval = 0;
 
         var pieceValues = new Dictionary<PieceType, int> {
-            { PieceType.None, 0 },
-            { PieceType.King, 900 },
-            { PieceType.Queen, 90 },
-            { PieceType.Rook, 50 },
-            { PieceType.Bishop, 30 },
-            { PieceType.Knight, 30 },
-            { PieceType.Pawn, 10 }
-        };
+        { PieceType.None, 0 },
+        { PieceType.King, 900 },
+        { PieceType.Queen, 90 },
+        { PieceType.Rook, 50 },
+        { PieceType.Bishop, 30 },
+        { PieceType.Knight, 30 },
+        { PieceType.Pawn, 10 }
+    };
 
         foreach (var pList in board.GetAllPieceLists())
         {
@@ -32,68 +33,76 @@ public class MyBot : IChessBot
             {
                 //Evaluation heuristic
                 float value = pieceValues[p.PieceType];
-                eval += p.IsWhite ? value : -value; //Value of pieces
-                eval += p.IsWhite ? board.GetLegalMoves().Length : - board.GetLegalMoves().Length; //Amount of legal moves (mobility)
-                
+                eval += p.IsWhite ? value : -value; //Value of pieces                
             }
         }
+
+        // Encourage checks and checkmates
+        if (board.IsInCheck())
+        {
+            eval += board.IsWhiteToMove ? -20 : 20;
+        }
+        if (board.IsInCheckmate())
+        {
+            eval += board.IsWhiteToMove ? -1000 : 1000; // large reward for checkmate
+        }
+
+        // Encourage avoidance of draws
+        if (board.IsDraw())
+        {
+            eval = 0;
+        }
+
         return eval;
     }
 
-    public (float, Move) Minimax(Board board, int depth, float alpha, float beta, Move bestMove)
+
+    public (float, Move) Minimax(Board board, int depth, bool isMaximizing, float alpha, float beta)
     {
         if (depth == 0 || board.GetLegalMoves().Length == 0)
         {
-            return (evaluateBoard(board), bestMove); // Return the evaluation and no move at leaf nodes
+            return (evaluateBoard(board), new Move()); // Best move is not relevant at the leaf node
         }
 
-        Move[] legalMoves = board.GetLegalMoves();
+        Move bestMove = new Move();
 
-        if (board.IsWhiteToMove)
+        if (isMaximizing)
         {
-            float bestValue = float.NegativeInfinity;
-            foreach (Move m in legalMoves)
+            float maxEval = float.NegativeInfinity;
+            foreach (Move m in board.GetLegalMoves())
             {
                 board.MakeMove(m);
-                (float value, _) = Minimax(board, depth - 1, alpha, beta, bestMove);
-                board.UndoMove(m); // Undo the move after evaluating
-
-                if (value > bestValue)
+                (float eval, Move _) = Minimax(board, depth - 1, false, alpha, beta);
+                board.UndoMove(m);
+                if (eval > maxEval)
                 {
-                    bestValue = value;
+                    maxEval = eval;
                     bestMove = m;
                 }
-
-                alpha = Math.Max(alpha, bestValue);
-                if (alpha >= beta)
-                {
+                alpha = Math.Max(alpha, eval);
+                if (beta <= alpha)
                     break;
-                }
             }
-            return (bestValue, bestMove);
+            return (maxEval, bestMove);
         }
         else
         {
-            float bestValue = float.PositiveInfinity;
-            foreach (Move m in legalMoves)
+            float minEval = float.PositiveInfinity;
+            foreach (Move m in board.GetLegalMoves())
             {
                 board.MakeMove(m);
-                (float value, _) = Minimax(board, depth - 1, alpha, beta, bestMove);
-                board.UndoMove(m); // Undo the move after evaluating
-
-                if (value < bestValue)
+                (float eval, Move _) = Minimax(board, depth - 1, true, alpha, beta);
+                board.UndoMove(m);
+                if (eval < minEval)
                 {
-                    bestValue = value;
+                    minEval = eval;
                     bestMove = m;
                 }
-
-                beta = Math.Min(beta, bestValue);
-                if (alpha >= beta)
-                {
+                beta = Math.Min(beta, eval);
+                if (beta <= alpha)
                     break;
-                }
             }
-            return (bestValue, bestMove);
+            return (minEval, bestMove);
         }
     }
 
