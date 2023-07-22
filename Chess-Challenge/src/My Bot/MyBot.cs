@@ -57,7 +57,6 @@ public class MyBot : IChessBot
         }
 
         Move[] moves = board.GetLegalMoves();
-        moves = moves.OrderByDescending(m => m.IsCapture).ThenBy(x => new Random().Next()).ToArray();
 
         Move bestMove = new Move();
 
