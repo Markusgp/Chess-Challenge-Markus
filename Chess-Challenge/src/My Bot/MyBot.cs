@@ -13,58 +13,67 @@ public class MyBot : IChessBot
         return Minimax(board, 5, isMaximizing, float.NegativeInfinity, float.PositiveInfinity).Item2;
     }
 
-  public float evaluateBoard(Board board)
-{
-    float eval = 0;
-
-    var pieceValues = new Dictionary<PieceType, int> {
-    { PieceType.None, 0 },
-    { PieceType.King, 900 },
-    { PieceType.Queen, 90 },
-    { PieceType.Rook, 50 },
-    { PieceType.Bishop, 30 },
-    { PieceType.Knight, 30 },
-    { PieceType.Pawn, 10 }
+    private readonly Dictionary<PieceType, int> pieceValues = new Dictionary<PieceType, int> {
+        { PieceType.None, 0 },
+        { PieceType.King, 900 },
+        { PieceType.Queen, 90 },
+        { PieceType.Rook, 50 },
+        { PieceType.Bishop, 30 },
+        { PieceType.Knight, 30 },
+        { PieceType.Pawn, 10 }
     };
 
-    foreach (var pList in board.GetAllPieceLists())
+    public float evaluateBoard(Board board)
     {
-        foreach (Piece p in pList)
+        float eval = 0;
+
+        foreach (var pList in board.GetAllPieceLists())
         {
-            // Base value of piece
-            float value = pieceValues[p.PieceType];
-            eval += p.IsWhite ? value : -value;
+            foreach (Piece p in pList)
+            {
+                // Base value of piece
+                float value = pieceValues[p.PieceType];
+                eval += p.IsWhite ? value : -value;
+            }
         }
-    }
 
-    if (board.IsDraw())
-    {
-        eval = 0;
-    }
-
-    if (board.IsWhiteToMove)
-    {
-        if (board.IsInCheckmate())
+        if (board.IsWhiteToMove)
         {
-            eval -= 2000;
+            if (board.IsInCheckmate())
+            {
+                eval = float.NegativeInfinity;
+            }
+            if (board.IsDraw())
+            {
+                eval = float.NegativeInfinity;
+            }
         }
-    }
-    else
-    {
-        if (board.IsInCheckmate())
+        else
         {
-            eval += 2000;
+            if (board.IsInCheckmate())
+            {
+                eval = float.PositiveInfinity;
+            }
+            if (board.IsDraw())
+            {
+                eval = float.PositiveInfinity;
+            }
         }
+
+        return eval;
     }
-
-    return eval;
-}
-
-
 
     public (float, Move) Minimax(Board board, int depth, bool isMaximizing, float alpha, float beta)
     {
-        if (depth == 0 || board.GetLegalMoves().Length == 0)
+
+        Move[] moves = board.GetLegalMoves();
+        Move[] orderedMoves = moves
+            .OrderByDescending(m => m.IsCapture)
+            .ThenByDescending(m => pieceValues[m.CapturePieceType])
+            .ToArray();
+
+
+        if (depth == 0 || orderedMoves.Length == 0)
         {
             return (evaluateBoard(board), new Move()); // Best move is not relevant at the leaf node
         }
@@ -74,7 +83,7 @@ public class MyBot : IChessBot
         if (isMaximizing)
         {
             float maxEval = float.NegativeInfinity;
-            foreach (Move m in board.GetLegalMoves())
+            foreach (Move m in orderedMoves)
             {
                 board.MakeMove(m);
                 (float eval, Move _) = Minimax(board, depth - 1, false, alpha, beta);
@@ -93,7 +102,7 @@ public class MyBot : IChessBot
         else
         {
             float minEval = float.PositiveInfinity;
-            foreach (Move m in board.GetLegalMoves())
+            foreach (Move m in orderedMoves)
             {
                 board.MakeMove(m);
                 (float eval, Move _) = Minimax(board, depth - 1, true, alpha, beta);
