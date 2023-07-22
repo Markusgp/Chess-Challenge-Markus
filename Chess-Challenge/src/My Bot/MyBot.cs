@@ -10,7 +10,7 @@ public class MyBot : IChessBot
     {
         Console.WriteLine("New eval: " + evaluateBoard(board));
         bool isMaximizing = board.IsWhiteToMove ? true : false;
-        return Minimax(board, 5, isMaximizing, float.NegativeInfinity, float.PositiveInfinity, float.NegativeInfinity, float.PositiveInfinity).Item2;
+        return Minimax(board, 5, isMaximizing, float.NegativeInfinity, float.PositiveInfinity).Item2;
     }
 
     public float evaluateBoard(Board board)
@@ -37,27 +37,11 @@ public class MyBot : IChessBot
             }
         }
 
-        // Encourage checks and checkmates
-        if (board.IsInCheck())
-        {
-            eval += board.IsWhiteToMove ? -20 : 20;
-        }
-        if (board.IsInCheckmate())
-        {
-            eval += board.IsWhiteToMove ? -1000 : 1000; // large reward for checkmate
-        }
-
-        // Encourage avoidance of draws
-        if (board.IsDraw())
-        {
-            eval = 0;
-        }
-
         return eval;
     }
 
 
-    public (float, Move) Minimax(Board board, int depth, bool isMaximizing, float alpha, float beta, float maxEval, float minEval)
+    public (float, Move) Minimax(Board board, int depth, bool isMaximizing, float alpha, float beta)
     {
         if (depth == 0 || board.GetLegalMoves().Length == 0)
         {
@@ -68,17 +52,18 @@ public class MyBot : IChessBot
 
         if (isMaximizing)
         {
+            float maxEval = float.NegativeInfinity;
             foreach (Move m in board.GetLegalMoves())
             {
                 board.MakeMove(m);
-                (float eval, Move _) = Minimax(board, depth - 1, false, alpha, beta, maxEval, minEval);
+                (float eval, Move _) = Minimax(board, depth - 1, false, alpha, beta);
                 board.UndoMove(m);
                 if (eval > maxEval)
                 {
                     maxEval = eval;
                     bestMove = m;
                 }
-                alpha = Math.Max(alpha, eval);
+                alpha = Math.Max(alpha, maxEval);
                 if (beta <= alpha)
                     break;
             }
@@ -86,17 +71,18 @@ public class MyBot : IChessBot
         }
         else
         {
+            float minEval = float.PositiveInfinity; 
             foreach (Move m in board.GetLegalMoves())
             {
                 board.MakeMove(m);
-                (float eval, Move _) = Minimax(board, depth - 1, true, alpha, beta, maxEval, minEval);
+                (float eval, Move _) = Minimax(board, depth - 1, true, alpha, beta);
                 board.UndoMove(m);
                 if (eval < minEval)
                 {
                     minEval = eval;
                     bestMove = m;
                 }
-                beta = Math.Min(beta, eval);
+                beta = Math.Min(beta, minEval);
                 if (beta <= alpha)
                     break;
             }
