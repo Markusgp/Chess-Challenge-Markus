@@ -13,23 +13,19 @@ public class MyBot : IChessBot
     /// </summary>
     public Move Think(Board board, Timer timer)
     {
-        //Default opening move as white
-        if(board.GetFenString() == "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" && board.IsWhiteToMove) {
-            return new Move("d2d4", board);
-        }
         Console.WriteLine("Eval: "+evaluateBoard(board));
 
         //White is the maximizer (goal is a positive score)
         //Black is the minimizer (goal is a negative score)
         bool isMaximizing = board.IsWhiteToMove ? true : false;
-        return Minimax(board, 5, isMaximizing, float.NegativeInfinity, float.PositiveInfinity).Item2;
+        return Minimax(board, 4, isMaximizing, float.NegativeInfinity, float.PositiveInfinity).Item2;
     }
 
     // Dictionary to assign values to each piece type.
     private readonly Dictionary<PieceType, int> pieceValues = new Dictionary<PieceType, int> {
         { PieceType.None, 0 },
         { PieceType.King, 900 },
-        { PieceType.Queen, 90 },
+        { PieceType.Queen, 120 },
         { PieceType.Rook, 50 },
         { PieceType.Bishop, 30 },
         { PieceType.Knight, 30 },
@@ -51,29 +47,29 @@ public class MyBot : IChessBot
                 // Base value of piece heuristic
                 float value = pieceValues[p.PieceType];
 
-                // // Mobility bonus
-                value += 0.05f * board.GetLegalMoves().Length;
+                // Mobility bonus
+                // value += 0.05f * board.GetLegalMoves().Length;
 
                 //Sum of board eval score, white is positive, black is negative.
                 eval += p.IsWhite ? value : -value;
             }
         }
 
-        // King safety
-        if (board.IsInCheck())
-        {
-            eval += board.IsWhiteToMove ? -3 : 3;
-        }
+        // //King safety
+        // if (board.IsInCheck())
+        // {
+        //     eval += board.IsWhiteToMove ? -3 : 3;
+        // }
 
-        // Checkmate and draw conditions
-        if (board.IsInCheckmate())
-        {
-            eval = board.IsWhiteToMove ? float.NegativeInfinity : float.PositiveInfinity;
-        }
-        if (board.IsDraw())
-        {
-            eval = 0;
-        }
+        // // Checkmate and draw conditions
+        // if (board.IsInCheckmate())
+        // {
+        //     eval = board.IsWhiteToMove ? float.NegativeInfinity : float.PositiveInfinity;
+        // }
+        // if (board.IsDraw())
+        // {
+        //     eval = 0;
+        // }
 
         return eval;
     }
@@ -91,16 +87,16 @@ public class MyBot : IChessBot
         }
 
         Move[] moves = board.GetLegalMoves();
-        //moves.OrderByDescending(m => m.IsCapture).ToArray();
-        Move bestMove = new Move();
 
         if (isMaximizing)
         {
+            Move bestMove = new Move();
             float maxEval = float.NegativeInfinity;
             foreach (Move m in moves)
             {
                 board.MakeMove(m);
                 (float eval, Move _) = Minimax(board, depth - 1, false, alpha, beta);
+
                 // Checking if the evaluation of this move is better than the current maxEval
                 if (eval > maxEval)
                 {
@@ -118,11 +114,13 @@ public class MyBot : IChessBot
         }
         else
         {
-            float minEval = float.PositiveInfinity;
+            Move bestMove = new Move();
+            float minEval = float.PositiveInfinity;   
             foreach (Move m in moves)
             {
                 board.MakeMove(m);
                 (float eval, Move _) = Minimax(board, depth - 1, true, alpha, beta);
+
                 // Checking if the evaluation of this move is better than the current minEval
                 if (eval < minEval)
                 {
@@ -130,7 +128,8 @@ public class MyBot : IChessBot
                     bestMove = m;
                 }
                 board.UndoMove(m);
-                // Alpha-Beta pruning
+                
+                //Alpha-Beta pruning
                 beta = Math.Min(beta, minEval);
                 if (beta <= alpha) {
                     break;
