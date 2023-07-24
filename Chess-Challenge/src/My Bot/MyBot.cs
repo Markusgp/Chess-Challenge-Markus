@@ -15,9 +15,10 @@ public class MyBot : IChessBot
     {
         //White is the maximizer (goal is a positive score)
         //Black is the minimizer (goal is a negative score)
-        bool isMaximizing = board.IsWhiteToMove ? true : false;
-        //Console.WriteLine("Eval: "+evaluateBoard(board));
-        return Minimax(board, 5, isMaximizing, float.NegativeInfinity, float.PositiveInfinity).Item2;
+        //Console.WriteLine("Actual eval: "+evaluateBoard(board));
+        var result = Minimax(board, 5, board.IsWhiteToMove, float.NegativeInfinity, float.PositiveInfinity);
+        Console.WriteLine("Bot eval: "+ result.Item1);
+        return result.Item2;
     }
 
     // Dictionary to assign values to each piece type.
@@ -48,9 +49,17 @@ public class MyBot : IChessBot
                 // Mobility bonus
                 // value += 0.1f * board.GetLegalMoves().Length;
 
-                //Sum of board eval score, white is positive, black is negative.
+                //Material evaluation sum (white is positive, black is negative).
                 eval += p.IsWhite ? value : -value;
             }
+        }
+
+        if(board.IsInCheckmate()) {
+            eval = board.IsWhiteToMove ? float.NegativeInfinity : float.PositiveInfinity;
+        }
+
+        if(board.IsDraw()) {
+            eval = 0;
         }
 
         return eval;
@@ -63,17 +72,18 @@ public class MyBot : IChessBot
     /// </summary>
     public (float, Move) Minimax(Board board, int depth, bool isMaximizing, float alpha, float beta)
     {
-        if (depth == 0 || board.IsInCheckmate() || board.IsDraw())
+        if (board.IsInCheckmate() || board.IsDraw() || depth == 0)
         {
             return (evaluateBoard(board), new Move());
         }
 
         Move[] moves = board.GetLegalMoves();
-        Move bestMove = new Move();
 
         if (isMaximizing)
         {
             float maxEval = float.NegativeInfinity;
+            Move bestWhiteMove = new Move();
+            
             foreach (Move m in moves)
             {
                 board.MakeMove(m);
@@ -83,7 +93,7 @@ public class MyBot : IChessBot
                 if (eval > maxEval)
                 {
                     maxEval = eval;
-                    bestMove = m;
+                    bestWhiteMove = m;
                 }
                 board.UndoMove(m);
                 // Alpha-Beta pruning
@@ -92,11 +102,12 @@ public class MyBot : IChessBot
                     break;
                 }
             }
-            return (maxEval, bestMove);
+            return (maxEval, bestWhiteMove);
         }
         else
         {
             float minEval = float.PositiveInfinity;
+            Move bestBlackMove = new Move();
             foreach (Move m in moves)
             {
                 board.MakeMove(m);
@@ -106,7 +117,7 @@ public class MyBot : IChessBot
                 if (eval < minEval)
                 {
                     minEval = eval;
-                    bestMove = m;
+                    bestBlackMove = m;
                 }
                 board.UndoMove(m);
 
@@ -116,7 +127,7 @@ public class MyBot : IChessBot
                     break;
                 }
             }
-            return (minEval, bestMove);
+            return (minEval, bestBlackMove);
         }
     }
 }
